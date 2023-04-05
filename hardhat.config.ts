@@ -5,12 +5,35 @@ import '@nomiclabs/hardhat-waffle'
 import '@nomiclabs/hardhat-etherscan'
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
-// import 'hardhat-deploy-ethers'
+import 'hardhat-deploy-ethers'
+import { task, types } from 'hardhat/config'
 
 const accounts = {
   mnemonic: process.env.MNEMONIC || 'test test test test test test test test test test test junk',
   accountsBalance: '990000000000000000000',
 }
+
+task('add-fee-tier', 'Add fee tier')
+  .addParam('fee', 'Fee', 100, types.int)
+  .addParam('tickSpacing', 'Tick Spacing', 1, types.int)
+  .setAction(async (taskArgs, hre) => {
+    const { fee, tickSpacing } = taskArgs
+    const { getNamedAccounts, ethers, deployments } = hre
+    const factory = await ethers.getContract('UniswapV3Factory')
+    await factory.enableFeeAmount(fee, tickSpacing)
+    console.log('Enabled fee amount')
+  })
+
+task('set-fee-protocol', 'Set fee protocol')
+  .addParam('feeProtocol0', 'Fee Protocol 0')
+  .addParam('feeProtocol1', 'Fee Protocol 1')
+  .setAction(async (taskArgs, hre) => {
+    const { feeProtocol0, feeProtocol1 } = taskArgs
+    const { ethers } = hre
+    const factory = await ethers.getContract('UniswapV3Factory')
+    await factory.setFeeProtocol(feeProtocol0, feeProtocol1)
+    console.log('Fee protocol set')
+  })
 
 export default {
   networks: {
