@@ -25,14 +25,15 @@ task('add-fee-tier', 'Add fee tier')
   })
 
 task('set-fee-protocol', 'Set fee protocol')
-  .addParam('feeProtocol0', 'Fee Protocol 0')
-  .addParam('feeProtocol1', 'Fee Protocol 1')
+  .addParam('poolAddress', 'Pool Address')
+  .addParam('feeProtocol0', 'Fee Protocol 0', 4, types.int)
+  .addParam('feeProtocol1', 'Fee Protocol 1', 4, types.int)
   .setAction(async (taskArgs, hre) => {
-    const { feeProtocol0, feeProtocol1 } = taskArgs
+    const { poolAddress, feeProtocol0, feeProtocol1 } = taskArgs
     const { ethers } = hre
-    const factory = await ethers.getContract('UniswapV3Factory')
-    await factory.setFeeProtocol(feeProtocol0, feeProtocol1)
-    console.log('Fee protocol set')
+    const pool = await ethers.getContractAt('UniswapV3Pool', poolAddress)
+    await pool.setFeeProtocol(feeProtocol0, feeProtocol1)
+    console.log(`Fee protocol set for pool ${poolAddress}`)
   })
 
 export default {
