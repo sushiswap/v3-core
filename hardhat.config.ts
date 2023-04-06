@@ -7,7 +7,7 @@ import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 import 'hardhat-deploy-ethers'
 import { task, types } from 'hardhat/config'
-
+const sleep = require('util').promisify(setTimeout)
 const accounts = {
   mnemonic: process.env.MNEMONIC || 'test test test test test test test test test test test junk',
   accountsBalance: '990000000000000000000',
@@ -25,15 +25,26 @@ task('add-fee-tier', 'Add fee tier')
   })
 
 task('set-fee-protocol', 'Set fee protocol')
-  .addParam('poolAddress', 'Pool Address')
+  // .addParam(
+  //   'poolAddresses',
+  //   'Pool Addresses'
+  // )
   .addParam('feeProtocol0', 'Fee Protocol 0', 4, types.int)
   .addParam('feeProtocol1', 'Fee Protocol 1', 4, types.int)
   .setAction(async (taskArgs, hre) => {
-    const { poolAddress, feeProtocol0, feeProtocol1 } = taskArgs
+    const poolAddresses: string[] = []
+
+    const { feeProtocol0, feeProtocol1 } = taskArgs
     const { ethers } = hre
-    const pool = await ethers.getContractAt('UniswapV3Pool', poolAddress)
-    await pool.setFeeProtocol(feeProtocol0, feeProtocol1)
-    console.log(`Fee protocol set for pool ${poolAddress}`)
+
+    for (const poolAddress of poolAddresses) {
+      const pool = await ethers.getContractAt('UniswapV3Pool', poolAddress)
+      await (await pool.setFeeProtocol(feeProtocol0, feeProtocol1)).wait()
+      // await sleep(10000)
+      console.log(`Fee protocol set for pool ${poolAddress}`)
+    }
+
+    console.log(`Fee protocol set for pool addresses ${poolAddresses}`)
   })
 
 export default {
