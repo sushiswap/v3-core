@@ -187,6 +187,13 @@ export default {
       live: true,
       saveDeployments: true,
     },
+    polygonzkevm: {
+      url: 'https://zkevm-rpc.com',
+      accounts,
+      chainId: 1101,
+      live: true,
+      saveDeployments: true,
+    },
     // ropsten: {
     //   url: `https://ropsten.infura.io/v3/${process.env.INFURA_API_KEY}`,
     // },
