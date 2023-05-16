@@ -194,6 +194,13 @@ export default {
       live: true,
       saveDeployments: true,
     },
+    thundercore: {
+      url: 'https://mainnet-rpc.thundertoken.net',
+      accounts,
+      chainId: 108,
+      live: true,
+      saveDeployments: true,
+    },
     // ropsten: {
     //   url: `https://ropsten.infura.io/v3/${process.env.INFURA_API_KEY}`,
     // },
