@@ -207,7 +207,21 @@ export default {
       chainId: 314,
       live: true,
       saveDeployments: true,
-    },    
+    },
+    // linea: {
+    //   url: '',
+    //   accounts,
+    //   chainId: ,
+    //   live: true,
+    //   saveDeployments: true,
+    // },
+    haqq: {
+      url: 'https://rpc.eth.haqq.network',
+      accounts,
+      chainId: 11235,
+      live: true,
+      saveDeployments: true,
+    },
     // ropsten: {
     //   url: `https://ropsten.infura.io/v3/${process.env.INFURA_API_KEY}`,
     // },
