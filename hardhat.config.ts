@@ -222,6 +222,13 @@ export default {
       live: true,
       saveDeployments: true,
     },
+    core: {
+      url: 'https://rpc.coredao.org',
+      accounts,
+      chainId: 1116,
+      live: true,
+      saveDeployments: true,
+    },
     // ropsten: {
     //   url: `https://ropsten.infura.io/v3/${process.env.INFURA_API_KEY}`,
     // },
