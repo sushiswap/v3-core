@@ -208,13 +208,6 @@ export default {
       live: true,
       saveDeployments: true,
     },
-    // linea: {
-    //   url: '',
-    //   accounts,
-    //   chainId: ,
-    //   live: true,
-    //   saveDeployments: true,
-    // },
     haqq: {
       url: 'https://rpc.eth.haqq.network',
       accounts,
@@ -226,6 +219,13 @@ export default {
       url: 'https://rpc.coredao.org',
       accounts,
       chainId: 1116,
+      live: true,
+      saveDeployments: true,
+    },
+    linea: {
+      url: 'https://rpc.linea.build',
+      accounts,
+      chainId: 59144,
       live: true,
       saveDeployments: true,
     },
