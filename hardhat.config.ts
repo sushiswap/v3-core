@@ -7,6 +7,7 @@ import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 import 'hardhat-deploy-ethers'
 import { task, types } from 'hardhat/config'
+import { MaxUint128 } from './test/shared/utilities'
 const sleep = require('util').promisify(setTimeout)
 const accounts = {
   mnemonic: process.env.MNEMONIC || 'test test test test test test test test test test test junk',
@@ -45,6 +46,26 @@ task('set-fee-protocol', 'Set fee protocol')
     }
 
     console.log(`Fee protocol set for pool addresses ${poolAddresses}`)
+  })
+
+task('collect', 'Collect')
+  // .addParam(
+  //   'poolAddresses',
+  //   'Pool Addresses'
+  // )
+  .addParam('amount0Requested', 'Amount 0 Requested', MaxUint128.toString(), types.string)
+  .addParam('amount1Requested', 'Amount 1 Requested', MaxUint128.toString(), types.string)
+  .setAction(async (taskArgs, hre) => {
+    const deployer = '0xf87BC5535602077d340806D71f805EA9907a843D'
+    const poolAddresses: string[] = []
+    const { amount0Requested, amount1Requested } = taskArgs
+    const { ethers } = hre
+    for (const poolAddress of poolAddresses) {
+      const pool = await ethers.getContractAt('UniswapV3Pool', poolAddress)
+      await (await pool.collectProtocol(deployer, amount0Requested, amount1Requested)).wait()
+      console.log(`Fees collected for pool ${poolAddress}`)
+    }
+    console.log(`Fees collected for pool addresses ${poolAddresses}`)
   })
 
 export default {
