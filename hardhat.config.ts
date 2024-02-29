@@ -2,14 +2,14 @@ import 'dotenv/config'
 import 'hardhat-typechain'
 import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-waffle'
-import '@nomiclabs/hardhat-etherscan'
+import '@nomicfoundation/hardhat-verify'
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 import 'hardhat-deploy-ethers'
 import { task, types } from 'hardhat/config'
 import { MaxUint128 } from './test/shared/utilities'
 const sleep = require('util').promisify(setTimeout)
-const accounts = {
+const accounts = process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] :{
   mnemonic: process.env.MNEMONIC || 'test test test test test test test test test test test junk',
   accountsBalance: '990000000000000000000',
 }
@@ -263,6 +263,13 @@ export default {
       chainId: 7000,
       live: true,
       saveDeployments: true
+    },
+    blast: {
+      url: 'https://rpc.blast.io',
+      accounts,
+      chainId: 81457,
+      live: true,
+      saveDeployments: true
     }
     // ropsten: {
     //   url: `https://ropsten.infura.io/v3/${process.env.INFURA_API_KEY}`,
@@ -336,6 +343,14 @@ export default {
           browserURL: 'https://andromeda-explorer.metis.io',
         },
       },
+      {
+        network: 'blast',
+        chainId: 81457,
+        urls: {
+          apiURL: 'https://api.blastscan.io/api',
+          browserURL: 'https://blastscan.io',
+        },
+      },
     ],
     apiKey: {
       mainnet: process.env.ETHERSCAN_API_KEY || '',
@@ -381,6 +396,7 @@ export default {
       // bobaAvax: 'api-key',
       bttc: process.env.BTTC_API_KEY || '',
       gnosis: process.env.GNOSIS_API_KEY || '',
+      blast: process.env.BLAST_API_KEY || '',
     },
   },
   solidity: {
@@ -388,7 +404,7 @@ export default {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 800,
+        runs: 50
       },
       metadata: {
         // do not include the metadata hash, since this is machine dependent

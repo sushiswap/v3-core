@@ -19,6 +19,8 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
     /// @inheritdoc IUniswapV3Factory
     mapping(address => mapping(address => mapping(uint24 => address))) public override getPool;
 
+    IBlast constant blast = IBlast(0x4300000000000000000000000000000000000002);
+
     constructor() {
         owner = msg.sender;
         emit OwnerChanged(address(0), msg.sender);
@@ -29,6 +31,8 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
         emit FeeAmountEnabled(3000, 60);
         feeAmountTickSpacing[10000] = 200;
         emit FeeAmountEnabled(10000, 200);
+
+        blast.configure(IBlast.YieldMode.VOID, IBlast.GasMode.CLAIMABLE, msg.sender);
     }
 
     /// @inheritdoc IUniswapV3Factory

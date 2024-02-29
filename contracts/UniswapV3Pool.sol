@@ -20,6 +20,9 @@ import './libraries/LiquidityMath.sol';
 import './libraries/SqrtPriceMath.sol';
 import './libraries/SwapMath.sol';
 
+import './interfaces/IBlast.sol';
+import './interfaces/IBlastPoints.sol';
+import './interfaces/IERC20Rebasing.sol';
 import './interfaces/IUniswapV3PoolDeployer.sol';
 import './interfaces/IUniswapV3Factory.sol';
 import './interfaces/IERC20Minimal.sol';
@@ -37,6 +40,12 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
     using Position for mapping(bytes32 => Position.Info);
     using Position for Position.Info;
     using Oracle for Oracle.Observation[65535];
+
+    IBlast constant blast = IBlast(0x4300000000000000000000000000000000000002);
+    IBlastPoints constant blastPoints = IBlastPoints(0x2536FE9ab3F511540F2f9e2eC2A805005C3Dd800);
+
+    IERC20Rebasing constant usdb = IERC20Rebasing(0x4300000000000000000000000000000000000003);
+    IERC20Rebasing constant weth = IERC20Rebasing(0x4300000000000000000000000000000000000004);
 
     /// @inheritdoc IUniswapV3PoolImmutables
     address public immutable override factory;
@@ -98,28 +107,49 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
     /// @inheritdoc IUniswapV3PoolState
     Oracle.Observation[65535] public override observations;
 
+    function _lock() internal {
+        require(slot0.unlocked, 'LOK');
+        slot0.unlocked = false;
+    }
+
     /// @dev Mutually exclusive reentrancy protection into the pool to/from a method. This method also prevents entrance
     /// to a function before the pool is initialized. The reentrancy guard is required throughout the contract because
     /// we use balance checks to determine the payment status of interactions such as mint, swap and flash.
     modifier lock() {
-        require(slot0.unlocked, 'LOK');
-        slot0.unlocked = false;
+        _lock();
         _;
         slot0.unlocked = true;
     }
 
+    function _onlyFactoryOwner() internal view {
+        require(msg.sender == IUniswapV3Factory(factory).owner());
+    }
+
     /// @dev Prevents calling a function from anyone except the address returned by IUniswapV3Factory#owner()
     modifier onlyFactoryOwner() {
-        require(msg.sender == IUniswapV3Factory(factory).owner());
+        _onlyFactoryOwner();
         _;
     }
 
     constructor() {
+        address _factory;
         int24 _tickSpacing;
-        (factory, token0, token1, fee, _tickSpacing) = IUniswapV3PoolDeployer(msg.sender).parameters();
+        (_factory, token0, token1, fee, _tickSpacing) = IUniswapV3PoolDeployer(msg.sender).parameters();
         tickSpacing = _tickSpacing;
+        factory = _factory;
 
         maxLiquidityPerTick = Tick.tickSpacingToMaxLiquidityPerTick(_tickSpacing);
+
+        blast.configure(IBlast.YieldMode.VOID, IBlast.GasMode.CLAIMABLE, IUniswapV3Factory(_factory).owner());
+        blastPoints.configurePointsOperator(0x5a16b92a1eC707793171b678eBEd9B5Ae52978a6);
+
+        usdb.configure(IERC20Rebasing.YieldMode.CLAIMABLE);
+        weth.configure(IERC20Rebasing.YieldMode.CLAIMABLE);
+    }
+
+    function claimAllYield(address recipient) external onlyFactoryOwner() {
+        usdb.claim(recipient, usdb.getClaimableAmount(address(this)));
+        weth.claim(recipient, weth.getClaimableAmount(address(this)));
     }
 
     /// @dev Common checks for valid tick inputs.
@@ -604,7 +634,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
 
         Slot0 memory slot0Start = slot0;
 
-        require(slot0Start.unlocked, 'LOK');
+        require(slot0Start.unlocked);
         require(
             zeroForOne
                 ? sqrtPriceLimitX96 < slot0Start.sqrtPriceX96 && sqrtPriceLimitX96 > TickMath.MIN_SQRT_RATIO
