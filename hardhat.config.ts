@@ -1,16 +1,18 @@
-import 'dotenv/config'
-import 'hardhat-typechain'
 import '@nomiclabs/hardhat-ethers'
-import '@nomiclabs/hardhat-waffle'
+import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-etherscan'
-import '@nomiclabs/hardhat-ethers'
+import '@nomiclabs/hardhat-waffle'
+import 'dotenv/config'
 import 'hardhat-deploy'
 import 'hardhat-deploy-ethers'
+import 'hardhat-typechain'
 import { task, types } from 'hardhat/config'
 import { MaxUint128 } from './test/shared/utilities'
 const sleep = require('util').promisify(setTimeout)
 const accounts = {
-  mnemonic: process.env.MNEMONIC || 'test test test test test test test test test test test junk',
+  mnemonic:
+    process.env.MNEMONIC ||
+    'test test test test test test test test test test test junk',
   accountsBalance: '990000000000000000000',
 }
 
@@ -33,7 +35,14 @@ task('set-fee-protocol', 'Set fee protocol')
   .addParam('feeProtocol0', 'Fee Protocol 0', 4, types.int)
   .addParam('feeProtocol1', 'Fee Protocol 1', 4, types.int)
   .setAction(async (taskArgs, hre) => {
-    const poolAddresses: string[] = []
+    const poolAddresses: string[] = [
+      '0xc4876eb31624a51888a2916f2d365b881ba9a8a3', // BRETT
+      // '0x6ece85052db0e29baf309361db2abfa65ea258bf', // TOSHI
+      // '0x65488ed876fa62489569abc73b6005a0a3f64150', // KRAV
+      // '0xa166e14e5bc66656f1514a45877497767506338c', // BALD 2.0
+      // '0x8efefcb548c9316c2367d6065e33e8d138e4137e', // EDE
+      // '0x24702ca4a4bedbe17ac5191a461143b542889750', // MEOW
+    ]
 
     const { feeProtocol0, feeProtocol1 } = taskArgs
     const { ethers } = hre
@@ -53,16 +62,45 @@ task('collect', 'Collect')
   //   'poolAddresses',
   //   'Pool Addresses'
   // )
-  .addParam('amount0Requested', 'Amount 0 Requested', MaxUint128.toString(), types.string)
-  .addParam('amount1Requested', 'Amount 1 Requested', MaxUint128.toString(), types.string)
+  .addParam(
+    'amount0Requested',
+    'Amount 0 Requested',
+    MaxUint128.toString(),
+    types.string,
+  )
+  .addParam(
+    'amount1Requested',
+    'Amount 1 Requested',
+    MaxUint128.toString(),
+    types.string,
+  )
   .setAction(async (taskArgs, hre) => {
     const deployer = '0xf87BC5535602077d340806D71f805EA9907a843D'
-    const poolAddresses: string[] = []
+    const poolAddresses: string[] = [
+      '0xc4876eb31624a51888a2916f2d365b881ba9a8a3', // BRETT
+      '0x6ece85052db0e29baf309361db2abfa65ea258bf', // TOSHI
+      // '0x5f0a153a64fd734c111b770da11de2c385ca8042', // BALD
+      '0x23e55d60b685d794ec83d0f9489bc5ce027ebc7b', // TOSHI
+      // '0x5c279b6f7b300570a923ab17cd2f405848b9e5dd', // YOU
+      '0x7ca35c2e6ba391ad2adc82413c052f3652d32c14', // LMEOW
+      '0x13def4568165d56b42b8259e544b74383f4407d7', // MOCHI
+      '0x7aa3bc844710220272d9e14cb4b4bb067953d8ac', // axlUSDC
+      // '0x83c52776efe5f60efec721e5b3750993c514f817', // SMUDCAT
+      // '0x693143e78f4207ef0536620a87e2befa80a46f3f', // BAPE
+      // '0x54687e4454ba40833898272efea031ac5e9e541a', // BaseF
+      // '0xade9866a86372ce6ce4ec8562455bc7235037c88', // COIN
+      // '0x65488ed876fa62489569abc73b6005a0a3f64150', // KRAV
+      // '0xa166e14e5bc66656f1514a45877497767506338c', // BALD 2.0
+      // '0x8efefcb548c9316c2367d6065e33e8d138e4137e', // EDE
+      // '0x24702ca4a4bedbe17ac5191a461143b542889750', // MEOW
+    ]
     const { amount0Requested, amount1Requested } = taskArgs
     const { ethers } = hre
     for (const poolAddress of poolAddresses) {
       const pool = await ethers.getContractAt('UniswapV3Pool', poolAddress)
-      await (await pool.collectProtocol(deployer, amount0Requested, amount1Requested)).wait()
+      await (
+        await pool.collectProtocol(deployer, amount0Requested, amount1Requested)
+      ).wait()
       console.log(`Fees collected for pool ${poolAddress}`)
     }
     console.log(`Fees collected for pool addresses ${poolAddresses}`)
@@ -223,7 +261,7 @@ export default {
       saveDeployments: true,
     },
     filecoin: {
-      url: 'https://filecoin-mainnet.chainstacklabs.com/rpc/v1',
+      url: 'https://rpc.ankr.com/filecoin',
       accounts,
       chainId: 314,
       live: true,
@@ -329,51 +367,60 @@ export default {
           browserURL: 'https://andromeda-explorer.metis.io',
         },
       },
+      {
+        network: 'arbitrum-nova',
+        chainId: 42170,
+        urls: {
+          apiURL: 'https://api-nova.arbiscan.io/api',
+          browserURL: 'https://arbiscan.io',
+        },
+      },
     ],
     apiKey: {
-      mainnet: process.env.ETHERSCAN_API_KEY || '',
-      ropsten: process.env.ETHERSCAN_API_KEY || '',
-      rinkeby: process.env.ETHERSCAN_API_KEY || '',
-      goerli: process.env.ETHERSCAN_API_KEY || '',
-      kovan: process.env.ETHERSCAN_API_KEY || '',
-      // binance smart chain
-      bsc: process.env.BSCSCAN_API_KEY || '',
-      bscTestnet: process.env.BSCSCAN_API_KEY || '',
-      // huobi eco chain
-      heco: process.env.HECOINFO_API_KEY || '',
-      hecoTestnet: process.env.HECOINFO_API_KEY || '',
-      // fantom mainnet
-      opera: process.env.FTMSCAN_API_KEY || '',
-      ftmTestnet: process.env.FTMSCAN_API_KEY || '',
-      // optimism
-      optimisticEthereum: process.env.OPTIMISTIC_ETHERSCAN_API_KEY || '',
-      optimisticKovan: process.env.OPTIMISTIC_ETHERSCAN_API_KEY || '',
-      // polygon
-      polygon: process.env.POLYGONSCAN_API_KEY || '',
-      polygonMumbai: process.env.POLYGONSCAN_API_KEY || '',
-      // arbitrum
-      arbitrumOne: process.env.ARBISCAN_API_KEY || '',
-      arbitrumTestnet: process.env.ARBISCAN_API_KEY || '',
-      // avalanche
-      avalanche: process.env.SNOWTRACE_API_KEY || '',
-      avalancheFujiTestnet: process.env.SNOWTRACE_API_KEY || '',
-      // moonbeam
-      moonbeam: process.env.MOONBEAM_MOONSCAN_API_KEY || '',
-      moonriver: process.env.MOONRIVER_MOONSCAN_API_KEY || '',
-      moonbaseAlpha: process.env.MOONBASE_MOONSCAN_API_KEY || '',
-      // harmony
-      harmony: process.env.HARMONY_API_KEY || '',
-      harmonyTest: process.env.HARMONY_API_KEY || '',
-      // xdai and sokol don't need an API key, but you still need
-      // to specify one; any string placeholder will work
-      xdai: 'api-key',
-      sokol: 'api-key',
-      aurora: 'api-key',
-      auroraTestnet: 'api-key',
-      metis: 'api-key',
-      // bobaAvax: 'api-key',
-      bttc: process.env.BTTC_API_KEY || '',
-      gnosis: process.env.GNOSIS_API_KEY || '',
+      'arbitrum-nova': '51WQTEN9E1G6191V8MWC5ZGBNWKSBKY2FB',
+      // mainnet: process.env.ETHERSCAN_API_KEY || '',
+      // ropsten: process.env.ETHERSCAN_API_KEY || '',
+      // rinkeby: process.env.ETHERSCAN_API_KEY || '',
+      // goerli: process.env.ETHERSCAN_API_KEY || '',
+      // kovan: process.env.ETHERSCAN_API_KEY || '',
+      // // binance smart chain
+      // bsc: process.env.BSCSCAN_API_KEY || '',
+      // bscTestnet: process.env.BSCSCAN_API_KEY || '',
+      // // huobi eco chain
+      // heco: process.env.HECOINFO_API_KEY || '',
+      // hecoTestnet: process.env.HECOINFO_API_KEY || '',
+      // // fantom mainnet
+      // opera: process.env.FTMSCAN_API_KEY || '',
+      // ftmTestnet: process.env.FTMSCAN_API_KEY || '',
+      // // optimism
+      // optimisticEthereum: process.env.OPTIMISTIC_ETHERSCAN_API_KEY || '',
+      // optimisticKovan: process.env.OPTIMISTIC_ETHERSCAN_API_KEY || '',
+      // // polygon
+      // polygon: process.env.POLYGONSCAN_API_KEY || '',
+      // polygonMumbai: process.env.POLYGONSCAN_API_KEY || '',
+      // // arbitrum
+      // arbitrumOne: process.env.ARBISCAN_API_KEY || '',
+      // arbitrumTestnet: process.env.ARBISCAN_API_KEY || '',
+      // // avalanche
+      // avalanche: process.env.SNOWTRACE_API_KEY || '',
+      // avalancheFujiTestnet: process.env.SNOWTRACE_API_KEY || '',
+      // // moonbeam
+      // moonbeam: process.env.MOONBEAM_MOONSCAN_API_KEY || '',
+      // moonriver: process.env.MOONRIVER_MOONSCAN_API_KEY || '',
+      // moonbaseAlpha: process.env.MOONBASE_MOONSCAN_API_KEY || '',
+      // // harmony
+      // harmony: process.env.HARMONY_API_KEY || '',
+      // harmonyTest: process.env.HARMONY_API_KEY || '',
+      // // xdai and sokol don't need an API key, but you still need
+      // // to specify one; any string placeholder will work
+      // xdai: 'api-key',
+      // sokol: 'api-key',
+      // aurora: 'api-key',
+      // auroraTestnet: 'api-key',
+      // metis: 'api-key',
+      // // bobaAvax: 'api-key',
+      // bttc: process.env.BTTC_API_KEY || '',
+      // gnosis: process.env.GNOSIS_API_KEY || '',
     },
   },
   solidity: {
