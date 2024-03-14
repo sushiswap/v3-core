@@ -67,6 +67,9 @@ task('set-fee-protocol', 'Set fee protocol')
       // '0x9a528325cc76aec0da05b4a9b5a839fae6edd733', // ETH/SUSHI 1
 
       // BASE
+
+      // '0x8e27128839aea978d65e98b28092367ade6048d8', // BEPE/WETH 0.3
+      // '0x693143e78f4207ef0536620a87e2befa80a46f3f', // BAPE/WETH 1
       // '0x41595326aabe6132fc6c7ae71af087a3a9dbc9f6', // ETH/USDC
       // '0x22ca6d83ab887a535ae1c6011cc36ea9d1255c31', // ETH/USDbC
       // '0xf458af2f7dd6c9c1f6f65ab429d0f7bddb05bc4b', // ETH/MOCHI
@@ -78,6 +81,9 @@ task('set-fee-protocol', 'Set fee protocol')
       // '0xa166e14e5bc66656f1514a45877497767506338c', // BALD 2.0
       // '0x8efefcb548c9316c2367d6065e33e8d138e4137e', // EDE
       // '0x24702ca4a4bedbe17ac5191a461143b542889750', // MEOW
+
+      // BLAST
+      // '0x512f7e46c48b358429e6259fbec74ef6dd3bc565', // ORE/WETH 1
     ]
 
     const { feeProtocol0, feeProtocol1 } = taskArgs
@@ -143,6 +149,8 @@ task('collect', 'Collect')
       // '0x9a528325cc76aec0da05b4a9b5a839fae6edd733', // ETH/SUSHI 1
 
       // BASE
+      // '0x8e27128839aea978d65e98b28092367ade6048d8', // BEPE/WETH 0.3
+      // '0x693143e78f4207ef0536620a87e2befa80a46f3f', // BAPE/WETH 1
       // '0x41595326aabe6132fc6c7ae71af087a3a9dbc9f6', // ETH/USDC
       // '0x22ca6d83ab887a535ae1c6011cc36ea9d1255c31', // ETH/USDbC
       // '0xf458af2f7dd6c9c1f6f65ab429d0f7bddb05bc4b', // ETH/MOCHI
@@ -166,6 +174,9 @@ task('collect', 'Collect')
       // '0xa166e14e5bc66656f1514a45877497767506338c', // BALD 2.0
       // '0x8efefcb548c9316c2367d6065e33e8d138e4137e', // EDE
       // '0x24702ca4a4bedbe17ac5191a461143b542889750', // MEOW
+
+      // BLAST
+      // '0x512f7e46c48b358429e6259fbec74ef6dd3bc565', // ORE/WETH 1
     ]
     const { amount0Requested, amount1Requested } = taskArgs
     const { ethers } = hre
@@ -372,6 +383,13 @@ export default {
       url: 'https://zetachain-evm.blockpi.network/v1/rpc/public',
       accounts,
       chainId: 7000,
+      live: true,
+      saveDeployments: true,
+    },
+    blast: {
+      url: 'https://rpc.blast.io',
+      accounts,
+      chainId: 81457,
       live: true,
       saveDeployments: true,
     },
