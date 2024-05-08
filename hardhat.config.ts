@@ -379,6 +379,13 @@ export default {
       live: true,
       saveDeployments: true,
     },
+    scroll: {
+      url: 'https://rpc.scroll.io/',
+      accounts,
+      chainId: 534352,
+      live: true,
+      saveDeployments: true,
+    },
     zetachain: {
       url: 'https://zetachain-evm.blockpi.network/v1/rpc/public',
       accounts,
