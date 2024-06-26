@@ -52,9 +52,10 @@ task('set-fee-protocol', 'Set fee protocol')
       // '0xae5aa896bb93f4c7c5660b7fc894b3892255d015', // USDC/USDT
       // '0xe64ae4128e725868e8fe52e771e3d272e787b041', // USDC/ETH
       // '0x08d8b29864348f8d1b7266bf02879c9d0af04eba', // WBTC/ETH
-
       // CORE
-      // '0x72d8e6d7307dcf11a3456b9f6fdfad05385b2f3e', // CORE/USDT
+      // '0x72d8e6d7307dcf11a3456b9f6fdfad05385b2f3e', // CORE/USDT 0.05
+      // '0x0ace320a3441585274f7d7838045420771582595', // CORE/USDC 0.05
+      // '0x599a68d45e6eed05aa8c5c0c85e7efeb5086d8e1', // USDT/USDC 0.01
       // ARBITRUM
       // '0xb3942c9ffa04efbc1fa746e146be7565c76e3dc1', // ETH/ARB 0.3
       // '0xd9e96f78b3c68ba79fd4dfad4ddf4f27bd1e2ecf', // USDT/USDC.e 0.01
@@ -67,7 +68,6 @@ task('set-fee-protocol', 'Set fee protocol')
       // '0x9a528325cc76aec0da05b4a9b5a839fae6edd733', // ETH/SUSHI 1
 
       // BASE
-
       // '0x8e27128839aea978d65e98b28092367ade6048d8', // BEPE/WETH 0.3
       // '0x693143e78f4207ef0536620a87e2befa80a46f3f', // BAPE/WETH 1
       // '0x41595326aabe6132fc6c7ae71af087a3a9dbc9f6', // ETH/USDC
@@ -136,7 +136,9 @@ task('collect', 'Collect')
       // '0xe64ae4128e725868e8fe52e771e3d272e787b041', // USDC/ETH
       // '0x08d8b29864348f8d1b7266bf02879c9d0af04eba', // WBTC/ETH
       // CORE
-      // '0x72d8e6d7307dcf11a3456b9f6fdfad05385b2f3e', // CORE/USDT
+      // '0x72d8e6d7307dcf11a3456b9f6fdfad05385b2f3e', // CORE/USDT 0.05
+      // '0x0ace320a3441585274f7d7838045420771582595', // CORE/USDC 0.05
+      // '0x599a68d45e6eed05aa8c5c0c85e7efeb5086d8e1', // USDT/USDC 0.01
       // ARBITRUM
       // '0xb3942c9ffa04efbc1fa746e146be7565c76e3dc1', // ETH/ARB 0.3
       // '0xd9e96f78b3c68ba79fd4dfad4ddf4f27bd1e2ecf', // USDT/USDC.e 0.01
@@ -164,7 +166,7 @@ task('collect', 'Collect')
       // '0x7aa3bc844710220272d9e14cb4b4bb067953d8ac', // axlUSDC
       // '0x5f0a153a64fd734c111b770da11de2c385ca8042', // BALD
 
-      // 
+      
       // '0x5c279b6f7b300570a923ab17cd2f405848b9e5dd', // YOU
       // '0x83c52776efe5f60efec721e5b3750993c514f817', // SMUDCAT
       // '0x693143e78f4207ef0536620a87e2befa80a46f3f', // BAPE
