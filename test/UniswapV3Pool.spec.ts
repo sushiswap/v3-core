@@ -1071,7 +1071,7 @@ describe('UniswapV3Pool', () => {
     })
 
     it('cannot be changed out of bounds', async () => {
-      await expect(pool.setFeeProtocol(3, 3)).to.be.reverted
+      await expect(pool.setFeeProtocol(12, 12)).to.be.reverted
       await expect(pool.setFeeProtocol(11, 11)).to.be.reverted
     })
 
@@ -1180,6 +1180,19 @@ describe('UniswapV3Pool', () => {
       })
 
       expect(token0Fees).to.be.eq('416666666666666')
+      expect(token1Fees).to.be.eq(0)
+    })
+    
+    it('position owner gets 0 fees when protocol fee is set to 1', async () => {
+      await pool.setFeeProtocol(1, 1)
+
+      const { token0Fees, token1Fees } = await swapAndGetFeesOwed({
+        amount: expandTo18Decimals(1),
+        zeroForOne: true,
+        poke: true,
+      })
+
+      expect(token0Fees).to.be.eq(0)
       expect(token1Fees).to.be.eq(0)
     })
 
@@ -1632,16 +1645,16 @@ describe('UniswapV3Pool', () => {
     it('can only be called by factory owner', async () => {
       await expect(pool.connect(other).setFeeProtocol(5, 5)).to.be.reverted
     })
-    it('fails if fee is lt 4 or gt 10', async () => {
-      await expect(pool.setFeeProtocol(3, 3)).to.be.reverted
-      await expect(pool.setFeeProtocol(6, 3)).to.be.reverted
-      await expect(pool.setFeeProtocol(3, 6)).to.be.reverted
+    it('fails if fee is gt 10', async () => {
       await expect(pool.setFeeProtocol(11, 11)).to.be.reverted
       await expect(pool.setFeeProtocol(6, 11)).to.be.reverted
       await expect(pool.setFeeProtocol(11, 6)).to.be.reverted
     })
     it('succeeds for fee of 4', async () => {
       await pool.setFeeProtocol(4, 4)
+    })
+    it('succeeds for fee of 1', async () => {
+      await pool.setFeeProtocol(1, 1)
     })
     it('succeeds for fee of 10', async () => {
       await pool.setFeeProtocol(10, 10)
