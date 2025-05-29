@@ -58,7 +58,7 @@ describe('UniswapV3Pool arbitrage tests', () => {
     loadFixture = createFixtureLoader([wallet, arbitrageur])
   })
 
-  for (const feeProtocol of [0, 6]) {
+  for (const feeProtocol of [0, 1, 2, 3, 6]) {
     describe(`protocol fee = ${feeProtocol};`, () => {
       const startingPrice = encodePriceSqrt(1, 1)
       const startingTick = 0

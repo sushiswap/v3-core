@@ -34,7 +34,7 @@ describe('UniswapV3Pool gas tests', () => {
     loadFixture = createFixtureLoader([wallet, other])
   })
 
-  for (const feeProtocol of [0, 6]) {
+  for (const feeProtocol of [0, 1, 2, 3, 6]) {
     describe(feeProtocol > 0 ? 'fee is on' : 'fee is off', () => {
       const startingPrice = encodePriceSqrt(100001, 100000)
       const startingTick = 0

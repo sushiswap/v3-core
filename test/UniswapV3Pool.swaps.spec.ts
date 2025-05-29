@@ -457,130 +457,142 @@ describe('UniswapV3Pool swap tests', () => {
 
     loadFixture = createFixtureLoader([wallet])
   })
-
-  for (const poolCase of TEST_POOLS) {
-    describe(poolCase.description, () => {
-      const poolCaseFixture = async () => {
-        const { createPool, token0, token1, swapTargetCallee: swapTarget } = await poolFixture(
-          [wallet],
-          waffle.provider
-        )
-        const pool = await createPool(poolCase.feeAmount, poolCase.tickSpacing)
-        const poolFunctions = createPoolFunctions({ swapTarget, token0, token1, pool })
-        await pool.initialize(poolCase.startingPrice)
-        // mint all positions
-        for (const position of poolCase.positions) {
-          await poolFunctions.mint(wallet.address, position.tickLower, position.tickUpper, position.liquidity)
-        }
-
-        const [poolBalance0, poolBalance1] = await Promise.all([
-          token0.balanceOf(pool.address),
-          token1.balanceOf(pool.address),
-        ])
-
-        return { token0, token1, pool, poolFunctions, poolBalance0, poolBalance1, swapTarget }
-      }
-
-      let token0: TestERC20
-      let token1: TestERC20
-
-      let poolBalance0: BigNumber
-      let poolBalance1: BigNumber
-
-      let pool: MockTimeUniswapV3Pool
-      let swapTarget: TestUniswapV3Callee
-      let poolFunctions: PoolFunctions
-
-      beforeEach('load fixture', async () => {
-        ;({ token0, token1, pool, poolFunctions, poolBalance0, poolBalance1, swapTarget } = await loadFixture(
-          poolCaseFixture
-        ))
-      })
-
-      afterEach('check can burn positions', async () => {
-        for (const { liquidity, tickUpper, tickLower } of poolCase.positions) {
-          await pool.burn(tickLower, tickUpper, liquidity)
-          await pool.collect(POSITION_PROCEEDS_OUTPUT_ADDRESS, tickLower, tickUpper, MaxUint128, MaxUint128)
-        }
-      })
-
-      for (const testCase of poolCase.swapTests ?? DEFAULT_POOL_SWAP_TESTS) {
-        it(swapCaseToDescription(testCase), async () => {
-          const slot0 = await pool.slot0()
-          const tx = executeSwap(pool, testCase, poolFunctions)
-          try {
-            await tx
-          } catch (error) {
-            expect({
-              swapError: error.message,
-              poolBalance0: poolBalance0.toString(),
-              poolBalance1: poolBalance1.toString(),
-              poolPriceBefore: formatPrice(slot0.sqrtPriceX96),
-              tickBefore: slot0.tick,
-            }).to.matchSnapshot('swap error')
-            return
-          }
-          const [
-            poolBalance0After,
-            poolBalance1After,
-            slot0After,
-            liquidityAfter,
-            feeGrowthGlobal0X128,
-            feeGrowthGlobal1X128,
-          ] = await Promise.all([
-            token0.balanceOf(pool.address),
-            token1.balanceOf(pool.address),
-            pool.slot0(),
-            pool.liquidity(),
-            pool.feeGrowthGlobal0X128(),
-            pool.feeGrowthGlobal1X128(),
-          ])
-          const poolBalance0Delta = poolBalance0After.sub(poolBalance0)
-          const poolBalance1Delta = poolBalance1After.sub(poolBalance1)
-
-          // check all the events were emitted corresponding to balance changes
-          if (poolBalance0Delta.eq(0)) await expect(tx).to.not.emit(token0, 'Transfer')
-          else if (poolBalance0Delta.lt(0))
-            await expect(tx)
-              .to.emit(token0, 'Transfer')
-              .withArgs(pool.address, SWAP_RECIPIENT_ADDRESS, poolBalance0Delta.mul(-1))
-          else await expect(tx).to.emit(token0, 'Transfer').withArgs(wallet.address, pool.address, poolBalance0Delta)
-
-          if (poolBalance1Delta.eq(0)) await expect(tx).to.not.emit(token1, 'Transfer')
-          else if (poolBalance1Delta.lt(0))
-            await expect(tx)
-              .to.emit(token1, 'Transfer')
-              .withArgs(pool.address, SWAP_RECIPIENT_ADDRESS, poolBalance1Delta.mul(-1))
-          else await expect(tx).to.emit(token1, 'Transfer').withArgs(wallet.address, pool.address, poolBalance1Delta)
-
-          // check that the swap event was emitted too
-          await expect(tx)
-            .to.emit(pool, 'Swap')
-            .withArgs(
-              swapTarget.address,
-              SWAP_RECIPIENT_ADDRESS,
-              poolBalance0Delta,
-              poolBalance1Delta,
-              slot0After.sqrtPriceX96,
-              liquidityAfter,
-              slot0After.tick
+  
+  for (const feeOn of [0, 1]) {
+    describe(`UniswapV3Pool swap tests (protocol fee = ${feeOn ? '100%' : 'off'})`, () => {
+      for (const poolCase of TEST_POOLS) {
+        describe(poolCase.description, () => {
+          const poolCaseFixture = async () => {
+            const { createPool, token0, token1, swapTargetCallee: swapTarget } = await poolFixture(
+              [wallet],
+              waffle.provider
             )
+            const pool = await createPool(poolCase.feeAmount, poolCase.tickSpacing)
+            const poolFunctions = createPoolFunctions({ swapTarget, token0, token1, pool })
+            await pool.initialize(poolCase.startingPrice)
+            
+            // Set protocol fee when feeOn is 1
+            if (feeOn === 1) {
+              await pool.setFeeProtocol(1, 1)
+            }
+            const slot0 = await pool.slot0()
+            console.log(slot0.feeProtocol)
 
-          const executionPrice = new Decimal(poolBalance1Delta.toString()).div(poolBalance0Delta.toString()).mul(-1)
+            // mint all positions
+            for (const position of poolCase.positions) {
+              await poolFunctions.mint(wallet.address, position.tickLower, position.tickUpper, position.liquidity)
+            }
 
-          expect({
-            amount0Before: poolBalance0.toString(),
-            amount1Before: poolBalance1.toString(),
-            amount0Delta: poolBalance0Delta.toString(),
-            amount1Delta: poolBalance1Delta.toString(),
-            feeGrowthGlobal0X128Delta: feeGrowthGlobal0X128.toString(),
-            feeGrowthGlobal1X128Delta: feeGrowthGlobal1X128.toString(),
-            tickBefore: slot0.tick,
-            poolPriceBefore: formatPrice(slot0.sqrtPriceX96),
-            tickAfter: slot0After.tick,
-            poolPriceAfter: formatPrice(slot0After.sqrtPriceX96),
-            executionPrice: executionPrice.toPrecision(5),
-          }).to.matchSnapshot('balances')
+            const [poolBalance0, poolBalance1] = await Promise.all([
+              token0.balanceOf(pool.address),
+              token1.balanceOf(pool.address),
+            ])
+
+            return { token0, token1, pool, poolFunctions, poolBalance0, poolBalance1, swapTarget }
+          }
+
+          let token0: TestERC20
+          let token1: TestERC20
+
+          let poolBalance0: BigNumber
+          let poolBalance1: BigNumber
+
+          let pool: MockTimeUniswapV3Pool
+          let swapTarget: TestUniswapV3Callee
+          let poolFunctions: PoolFunctions
+
+          beforeEach('load fixture', async () => {
+            ;({ token0, token1, pool, poolFunctions, poolBalance0, poolBalance1, swapTarget } = await loadFixture(
+              poolCaseFixture
+            ))
+          })
+
+          afterEach('check can burn positions', async () => {
+            for (const { liquidity, tickUpper, tickLower } of poolCase.positions) {
+              await pool.burn(tickLower, tickUpper, liquidity)
+              await pool.collect(POSITION_PROCEEDS_OUTPUT_ADDRESS, tickLower, tickUpper, MaxUint128, MaxUint128)
+            }
+          })
+
+          for (const testCase of poolCase.swapTests ?? DEFAULT_POOL_SWAP_TESTS) {
+            it(swapCaseToDescription(testCase), async () => {
+              const slot0 = await pool.slot0()
+              const tx = executeSwap(pool, testCase, poolFunctions)
+              try {
+                await tx
+              } catch (error) {
+                expect({
+                  swapError: error.message,
+                  poolBalance0: poolBalance0.toString(),
+                  poolBalance1: poolBalance1.toString(),
+                  poolPriceBefore: formatPrice(slot0.sqrtPriceX96),
+                  tickBefore: slot0.tick,
+                }).to.matchSnapshot('swap error')
+                return
+              }
+              const [
+                poolBalance0After,
+                poolBalance1After,
+                slot0After,
+                liquidityAfter,
+                feeGrowthGlobal0X128,
+                feeGrowthGlobal1X128,
+              ] = await Promise.all([
+                token0.balanceOf(pool.address),
+                token1.balanceOf(pool.address),
+                pool.slot0(),
+                pool.liquidity(),
+                pool.feeGrowthGlobal0X128(),
+                pool.feeGrowthGlobal1X128(),
+              ])
+              const poolBalance0Delta = poolBalance0After.sub(poolBalance0)
+              const poolBalance1Delta = poolBalance1After.sub(poolBalance1)
+
+              // check all the events were emitted corresponding to balance changes
+              if (poolBalance0Delta.eq(0)) await expect(tx).to.not.emit(token0, 'Transfer')
+              else if (poolBalance0Delta.lt(0))
+                await expect(tx)
+                  .to.emit(token0, 'Transfer')
+                  .withArgs(pool.address, SWAP_RECIPIENT_ADDRESS, poolBalance0Delta.mul(-1))
+              else await expect(tx).to.emit(token0, 'Transfer').withArgs(wallet.address, pool.address, poolBalance0Delta)
+
+              if (poolBalance1Delta.eq(0)) await expect(tx).to.not.emit(token1, 'Transfer')
+              else if (poolBalance1Delta.lt(0))
+                await expect(tx)
+                  .to.emit(token1, 'Transfer')
+                  .withArgs(pool.address, SWAP_RECIPIENT_ADDRESS, poolBalance1Delta.mul(-1))
+              else await expect(tx).to.emit(token1, 'Transfer').withArgs(wallet.address, pool.address, poolBalance1Delta)
+
+              // check that the swap event was emitted too
+              await expect(tx)
+                .to.emit(pool, 'Swap')
+                .withArgs(
+                  swapTarget.address,
+                  SWAP_RECIPIENT_ADDRESS,
+                  poolBalance0Delta,
+                  poolBalance1Delta,
+                  slot0After.sqrtPriceX96,
+                  liquidityAfter,
+                  slot0After.tick
+                )
+
+              const executionPrice = new Decimal(poolBalance1Delta.toString()).div(poolBalance0Delta.toString()).mul(-1)
+
+              expect({
+                amount0Before: poolBalance0.toString(),
+                amount1Before: poolBalance1.toString(),
+                amount0Delta: poolBalance0Delta.toString(),
+                amount1Delta: poolBalance1Delta.toString(),
+                feeGrowthGlobal0X128Delta: feeGrowthGlobal0X128.toString(),
+                feeGrowthGlobal1X128Delta: feeGrowthGlobal1X128.toString(),
+                tickBefore: slot0.tick,
+                poolPriceBefore: formatPrice(slot0.sqrtPriceX96),
+                tickAfter: slot0After.tick,
+                poolPriceAfter: formatPrice(slot0After.sqrtPriceX96),
+                executionPrice: executionPrice.toPrecision(5),
+              }).to.matchSnapshot('balances')
+            })
+          }
         })
       }
     })

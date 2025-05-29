@@ -491,6 +491,18 @@ describe('UniswapV3Pool', () => {
         expect(token1ProtocolFees).to.eq('5000000000000')
       })
 
+      it('protocol fees accumulate as expected during swap (protocol fee = 100%)', async () => {
+        await pool.setFeeProtocol(1, 1)
+
+        await mint(wallet.address, minTick + tickSpacing, maxTick - tickSpacing, expandTo18Decimals(1))
+        await swapExact0For1(expandTo18Decimals(1).div(10), wallet.address)
+        await swapExact1For0(expandTo18Decimals(1).div(100), wallet.address)
+
+        let { token0: token0ProtocolFees, token1: token1ProtocolFees } = await pool.protocolFees()
+        expect(token0ProtocolFees).to.eq('300000000000000')
+        expect(token1ProtocolFees).to.eq('30000000000000')
+      })
+
       it('positions are protected before protocol fee is turned on', async () => {
         await mint(wallet.address, minTick + tickSpacing, maxTick - tickSpacing, expandTo18Decimals(1))
         await swapExact0For1(expandTo18Decimals(1).div(10), wallet.address)
@@ -897,42 +909,56 @@ describe('UniswapV3Pool', () => {
       expect((await pool.slot0()).tick).to.be.lt(-120)
     })
 
-    describe('fee is on', () => {
-      beforeEach(() => pool.setFeeProtocol(6, 6))
-      it('limit selling 0 for 1 at tick 0 thru 1', async () => {
-        await expect(mint(wallet.address, 0, 120, expandTo18Decimals(1)))
-          .to.emit(token0, 'Transfer')
-          .withArgs(wallet.address, pool.address, '5981737760509663')
-        // somebody takes the limit order
-        await swapExact1For0(expandTo18Decimals(2), other.address)
-        await expect(pool.burn(0, 120, expandTo18Decimals(1)))
-          .to.emit(pool, 'Burn')
-          .withArgs(wallet.address, 0, 120, expandTo18Decimals(1), 0, '6017734268818165')
-          .to.not.emit(token0, 'Transfer')
-          .to.not.emit(token1, 'Transfer')
-        await expect(pool.collect(wallet.address, 0, 120, MaxUint128, MaxUint128))
-          .to.emit(token1, 'Transfer')
-          .withArgs(pool.address, wallet.address, BigNumber.from('6017734268818165').add('15089604485501')) // roughly 0.25% despite other liquidity
-          .to.not.emit(token0, 'Transfer')
-        expect((await pool.slot0()).tick).to.be.gte(120)
+    for (const protocolFee of [1, 6]) {
+      describe(`fee is on: ${protocolFee}`, () => {
+        beforeEach(() => pool.setFeeProtocol(protocolFee, protocolFee))
+        it('limit selling 0 for 1 at tick 0 thru 1', async () => {
+          await expect(mint(wallet.address, 0, 120, expandTo18Decimals(1)))
+            .to.emit(token0, 'Transfer')
+            .withArgs(wallet.address, pool.address, '5981737760509663')
+          // somebody takes the limit order
+          await swapExact1For0(expandTo18Decimals(2), other.address)
+          await expect(pool.burn(0, 120, expandTo18Decimals(1)))
+            .to.emit(pool, 'Burn')
+            .withArgs(wallet.address, 0, 120, expandTo18Decimals(1), 0, '6017734268818165')
+            .to.not.emit(token0, 'Transfer')
+            .to.not.emit(token1, 'Transfer')
+          await expect(pool.collect(wallet.address, 0, 120, MaxUint128, MaxUint128))
+            .to.emit(token1, 'Transfer')
+            .withArgs(
+              pool.address,
+              wallet.address,
+              protocolFee === 1
+                ? BigNumber.from('6017734268818165')
+                : BigNumber.from('6017734268818165').add('15089604485501')
+            ) // roughly 0.25% despite other liquidity
+            .to.not.emit(token0, 'Transfer')
+          expect((await pool.slot0()).tick).to.be.gte(120)
+        })
+        it('limit selling 1 for 0 at tick 0 thru -1', async () => {
+          await expect(mint(wallet.address, -120, 0, expandTo18Decimals(1)))
+            .to.emit(token1, 'Transfer')
+            .withArgs(wallet.address, pool.address, '5981737760509663')
+          // somebody takes the limit order
+          await swapExact0For1(expandTo18Decimals(2), other.address)
+          await expect(pool.burn(-120, 0, expandTo18Decimals(1)))
+            .to.emit(pool, 'Burn')
+            .withArgs(wallet.address, -120, 0, expandTo18Decimals(1), '6017734268818165', 0)
+            .to.not.emit(token0, 'Transfer')
+            .to.not.emit(token1, 'Transfer')
+          await expect(pool.collect(wallet.address, -120, 0, MaxUint128, MaxUint128))
+            .to.emit(token0, 'Transfer')
+            .withArgs(
+              pool.address,
+              wallet.address,
+              protocolFee === 1
+                ? BigNumber.from('6017734268818165')
+                : BigNumber.from('6017734268818165').add('15089604485501')
+            ) // roughly 0.25% despite other liquidity
+          expect((await pool.slot0()).tick).to.be.lt(-120)
+        })
       })
-      it('limit selling 1 for 0 at tick 0 thru -1', async () => {
-        await expect(mint(wallet.address, -120, 0, expandTo18Decimals(1)))
-          .to.emit(token1, 'Transfer')
-          .withArgs(wallet.address, pool.address, '5981737760509663')
-        // somebody takes the limit order
-        await swapExact0For1(expandTo18Decimals(2), other.address)
-        await expect(pool.burn(-120, 0, expandTo18Decimals(1)))
-          .to.emit(pool, 'Burn')
-          .withArgs(wallet.address, -120, 0, expandTo18Decimals(1), '6017734268818165', 0)
-          .to.not.emit(token0, 'Transfer')
-          .to.not.emit(token1, 'Transfer')
-        await expect(pool.collect(wallet.address, -120, 0, MaxUint128, MaxUint128))
-          .to.emit(token0, 'Transfer')
-          .withArgs(pool.address, wallet.address, BigNumber.from('6017734268818165').add('15089604485501')) // roughly 0.25% despite other liquidity
-        expect((await pool.slot0()).tick).to.be.lt(-120)
-      })
-    })
+    }
   })
 
   describe('#collect', () => {
@@ -1071,7 +1097,7 @@ describe('UniswapV3Pool', () => {
     })
 
     it('cannot be changed out of bounds', async () => {
-      await expect(pool.setFeeProtocol(3, 3)).to.be.reverted
+      await expect(pool.setFeeProtocol(12, 12)).to.be.reverted
       await expect(pool.setFeeProtocol(11, 11)).to.be.reverted
     })
 
@@ -1180,6 +1206,19 @@ describe('UniswapV3Pool', () => {
       })
 
       expect(token0Fees).to.be.eq('416666666666666')
+      expect(token1Fees).to.be.eq(0)
+    })
+    
+    it('position owner gets 0 fees when protocol fee is set to 1', async () => {
+      await pool.setFeeProtocol(1, 1)
+
+      const { token0Fees, token1Fees } = await swapAndGetFeesOwed({
+        amount: expandTo18Decimals(1),
+        zeroForOne: true,
+        poke: true,
+      })
+
+      expect(token0Fees).to.be.eq(0)
       expect(token1Fees).to.be.eq(0)
     })
 
@@ -1632,16 +1671,16 @@ describe('UniswapV3Pool', () => {
     it('can only be called by factory owner', async () => {
       await expect(pool.connect(other).setFeeProtocol(5, 5)).to.be.reverted
     })
-    it('fails if fee is lt 4 or gt 10', async () => {
-      await expect(pool.setFeeProtocol(3, 3)).to.be.reverted
-      await expect(pool.setFeeProtocol(6, 3)).to.be.reverted
-      await expect(pool.setFeeProtocol(3, 6)).to.be.reverted
+    it('fails if fee is gt 10', async () => {
       await expect(pool.setFeeProtocol(11, 11)).to.be.reverted
       await expect(pool.setFeeProtocol(6, 11)).to.be.reverted
       await expect(pool.setFeeProtocol(11, 6)).to.be.reverted
     })
     it('succeeds for fee of 4', async () => {
       await pool.setFeeProtocol(4, 4)
+    })
+    it('succeeds for fee of 1', async () => {
+      await pool.setFeeProtocol(1, 1)
     })
     it('succeeds for fee of 10', async () => {
       await pool.setFeeProtocol(10, 10)
